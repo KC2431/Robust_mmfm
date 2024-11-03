@@ -72,16 +72,24 @@ class ModelTrainer:
 
         if self.save_model:
             torch.save(self.model.state_dict(), f'clip_model_dataset_{self.data_name}_num_epochs_{self.num_epochs}_data_{self.data_name}_data_seed_{self.data_seed}.pt')
-
+            print(f"Saving fine-tuned model as clip_model_dataset_{self.data_name}_num_epochs_{self.num_epochs}_data_{self.data_name}_data_seed_{self.data_seed}.pt")
 
 def main():
     import os
     os.environ['HF_HOME'] = '/home/htc/kchitranshi/SCRATCH/'    
     
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--num_epochs', type=int, default=20)
+    parser.add_argument('--data_seed', type=int, default=42)
+    parser.add_argument('--data_name', type=str, default="MS_COCO", choices=["MS_COCO","base","medium","large"])
+    parser.add_argument('--save_model', action='store_true', default=False)
+    args = parser.parse_args()
+
     from torch.utils.data import DataLoader
     from coco_cf_loader import MS_COCO_dataset, custom_collate_fn
 
-    torch.manual_seed(43)
+    torch.manual_seed(42)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
@@ -96,13 +104,13 @@ def main():
     
     trainer = ModelTrainer(model=model, 
                            processor=processor, 
-                           data_name="MS_COCO", 
+                           data_name=args.data_name, 
                            data_loader=data_loader, 
-                           num_epochs=20, 
+                           num_epochs=args.num_epochs, 
                            learning_rate=5e-7, 
                            weight_decay=1e-3,
                            device=device,
-                           data_seed=42
+                           data_seed=args.data_seed,
     )
 
     trainer.train()
