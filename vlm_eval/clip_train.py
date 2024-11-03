@@ -1,3 +1,4 @@
+from random import seed, shuffle
 from typing import Callable
 import transformers
 import torch
@@ -18,7 +19,8 @@ class ModelTrainer:
                  learning_rate: float = 5e-7, 
                  weight_decay: float = 1e-3,
                  device: str = "cuda:0",
-                 save_model: bool = False
+                 save_model: bool = False,
+                 data_seed: int = 42
     ) -> None:
 
         self.model = model
@@ -30,8 +32,9 @@ class ModelTrainer:
         self.weight_decay = weight_decay
         self.device = device
         self.save_model = save_model
+        self.data_seed = data_seed
 
-        self.optimizer = torch.optim.Adam(
+        self.optimizer = torch.optim.AdamW(
             self.model.parameters(),
             lr=self.learning_rate,
             weight_decay=self.weight_decay
@@ -48,7 +51,7 @@ class ModelTrainer:
                                                  images=batch["image"], 
                                                  return_tensors="pt", 
                                                  padding=True, 
-                                                 max_length=128, 
+                                                 max_length=77, 
                                                  truncation=True
                 )
                 outputs = self.model(input_ids=processed_input['input_ids'].squeeze().to(self.device),
@@ -68,7 +71,7 @@ class ModelTrainer:
             )
 
         if self.save_model:
-            torch.save(self.model.state_dict(), f'clip_model_dataset_{self.data_name}_num_epochs_{self.num_epochs}.pt')
+            torch.save(self.model.state_dict(), f'clip_model_dataset_{self.data_name}_num_epochs_{self.num_epochs}_data_{self.data_name}_data_seed_{self.data_seed}.pt')
 
 
 def main():
@@ -78,12 +81,18 @@ def main():
     from torch.utils.data import DataLoader
     from coco_cf_loader import MS_COCO_dataset, custom_collate_fn
 
+    torch.manual_seed(43)
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
     
     data = MS_COCO_dataset(base_dir='/home/htc/kchitranshi/SCRATCH/MS_COCO/')
-    data_loader = DataLoader(data, batch_size=128,collate_fn=custom_collate_fn)
+    data_loader = DataLoader(data, 
+                             batch_size=128,
+                             collate_fn=custom_collate_fn,
+                             shuffle=True,
+    )
     
     trainer = ModelTrainer(model=model, 
                            processor=processor, 
@@ -92,7 +101,8 @@ def main():
                            num_epochs=20, 
                            learning_rate=5e-7, 
                            weight_decay=1e-3,
-                           device=device
+                           device=device,
+                           data_seed=42
     )
 
     trainer.train()
