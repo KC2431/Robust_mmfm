@@ -1,6 +1,5 @@
 from random import seed, shuffle
 from typing import Callable
-import transformers
 import torch
 from tqdm import tqdm
 from transformers import CLIPProcessor, CLIPModel
