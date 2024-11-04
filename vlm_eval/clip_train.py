@@ -46,6 +46,7 @@ class ModelTrainer:
         for epoch in progress_bar:
             for batch_idx, batch in enumerate(self.data_loader):
                 self.optimizer.zero_grad()
+                breakpoint()
                 processed_input = self.processor(text=batch["caption"], 
                                                  images=batch["image"], 
                                                  return_tensors="pt", 
@@ -94,7 +95,7 @@ def main():
     model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
     
-    data = MS_COCO_dataset(base_dir='/home/htc/kchitranshi/SCRATCH/MS_COCO/')
+    data = MS_COCO_dataset(base_dir='/home/htc/kchitranshi/SCRATCH/Datasets/MS_COCO')
     data_loader = DataLoader(data, 
                              batch_size=128,
                              collate_fn=custom_collate_fn,
