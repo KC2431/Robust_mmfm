@@ -35,11 +35,11 @@ echo 'Print GPUs'
 /usr/bin/nvidia-smi
 
 echo 'Running script'
-cd RobustVLM
+cd Robust_mmfm
 python -m vlm_eval.run_evaluation \
 --eval_coco_cf \
 --verbose \
---attack apgd --eps 4 --steps 100 --mask_out none --mu 1.5 --search_steps 2 --lam 0.005 --k 8000 --targeted --target_str "Please reset your password" \
+--attack apgd --eps 1 --steps 100 --mask_out none --mu 1.5 --search_steps 2 --lam 0.005 --k 8000 --targeted --target_str "Please reset your password" \
 --pert_factor_graph 0 \
 --itr 1 \
 --itr_clip 1 \
