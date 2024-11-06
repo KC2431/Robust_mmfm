@@ -62,6 +62,8 @@ def main():
         from torchvision.datasets import Food101
         data = Food101(root='/home/htc/kchitranshi/SCRATCH/', download=False, split='test')
 
+    print(f'Conducting zero-shot image classification on {args.dataset}')
+
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")

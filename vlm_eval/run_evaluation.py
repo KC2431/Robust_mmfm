@@ -88,6 +88,7 @@ parser.add_argument("--itr_dataset",
                     type=str,
                     choices=["MS_COCO", "base", "medium", "all","clean"],
                     help="If set to MS_COCO, it calculates R@1, R@5, R@10 for image to text retrieval with CLIP fine-tuned on MS_COCO")
+parser.add_argument("--itr_method", default="APGD_4", choices=["MS_COCO_APGD_4", "MS_COCO_APGD_1", "MS_COCO_COCO_CF", "MS_COCO", "clean"])
 parser.add_argument(
     "--trial_seeds",
     nargs="+",
@@ -1346,7 +1347,7 @@ def evaluate_captioning(
                 R10s_tir.append(r_at_10)
 
                 print(f"R@1: {r_at_1:.4f}, R@5: {r_at_5:.4f}, R@10: {r_at_10:.4f} for text-to-image retrieval")
-            
+
         # Code for measuring CIDEr score and attack success rate at each perturbation factor        
         if args.pert_factor_graph:
             pert_factor_levels = [0.1 * x for x in range(1,10)]
