@@ -57,6 +57,7 @@ from vlm_eval.attacks.iht import IHT
 from vlm_eval.attacks.ead import EAD
 from open_flamingo.eval.models.of_eval_model_adv import EvalModelAdv
 
+from vlm_eval.datasets_classes_templates import data_seeds
 
 parser = argparse.ArgumentParser()
 
@@ -82,9 +83,11 @@ parser.add_argument(
 parser.add_argument("--pert_factor_graph", default=0, type=int, help="If set to 1 it provides CIDEr score (or ASR) for each pertubation factor")
 parser.add_argument("--itr", default=0, type=int, help="If set to 1, it calculates R@1, R@5, R@10 for image text retrieval")
 parser.add_argument("--itr_clip", default=0, type=int, help="If set to 1, it calculates R@1, R@5, R@10 for image to text retrieval with CLIP")
-parser.add_argument("--itr_clip_rn", default=0, type=int, help="If set to 1, it calculates R@1, R@5, R@10 for image to text retrieval with CLIP with image encoder ResNet50")
-parser.add_argument("--itr_clip_vit", default=0, type=int, help="If set to 1, it calculates R@1, R@5, R@10 for image to text retrieval with CLIP with image encoder ViT-B/32")
-parser.add_argument("--itr_vilt", default=0, type=int, help="If set to 1, it calculates R@1, R@5, R@10 for image to text retrieval with ViLT")
+parser.add_argument("--itr_dataset", 
+                    default="MS_COCO", 
+                    type=str,
+                    choices=["MS_COCO", "base", "medium", "all","clean"],
+                    help="If set to MS_COCO, it calculates R@1, R@5, R@10 for image to text retrieval with CLIP fine-tuned on MS_COCO")
 parser.add_argument(
     "--trial_seeds",
     nargs="+",
@@ -1277,54 +1280,73 @@ def evaluate_captioning(
         
         if args.itr:
             from PIL import Image
+            from transformers import CLIPProcessor, CLIPModel
 
-            adversarial_images = torch.concat(batchs_images_array, dim=0)
-            adversarial_images = adversarial_images.view(adversarial_images.shape[0], 3, 224, 224)
-            adversarial_images = [Image.fromarray(adv_img.mul(255).byte().permute(1, 2, 0).cpu().numpy()) for adv_img in adversarial_images]
+            R1s_itr, R5s_itr, R10s_itr = [], [], [] # for image to text retrieval
+            R1s_tir, R5s_tir, R10s_tir = [], [], [] # for text to image retrieval
 
-            #eval_model = eval_model.to('cpu') # shifting model to system RAM to save space for CLIP
-            if args.itr_clip:
+            clip_trained_models_path = '/home/htc/kchitranshi/SCRATCH/trained_clip_models/'           
+            clip_trained_model_method_path = clip_trained_models_path + args.itr_method
+            
+            for data_seed in data_seeds:
+                if args.itr_method != 'clean':
+                    if args.itr_dataset != 'MS_COCO':
+                        model = CLIPModel.from_pretrained(clip_trained_model_method_path + f'/clip_model_dataset_{args.itr_dataset}_method_{args.itr_method}_num_epochs_10_data_seed_{data_seed}.pt')
+                    else:
+                        model = CLIPModel.from_pretrained(clip_trained_model_method_path + f'/clip_model_method_none_num_epochs_10.pt')
+                else:
+                    model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+                
+                processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+                                
+                adversarial_images = torch.concat(batchs_images_array, dim=0)
+                adversarial_images = adversarial_images.view(adversarial_images.shape[0], 3, 224, 224)
+                adversarial_images = [Image.fromarray(adv_img.mul(255).byte().permute(1, 2, 0).cpu().numpy()) for adv_img in adversarial_images]
 
                 print("Performing image text retrieval for CLIP")
-                from transformers import CLIPProcessor, CLIPModel
-                model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-                processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
                 model.eval()
 
-            
                 inputs = processor(text=itr_text_array, images=adversarial_images,return_tensors="pt", padding=True, max_length=77, truncation=True)
-                
+                    
                 with torch.no_grad():
                     image_features = model.get_image_features(inputs['pixel_values'])
                     text_features = model.get_text_features(inputs["input_ids"], attention_mask=inputs["attention_mask"])
-                    
+                        
                 image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
                 text_features = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
                 similarity_i2t = torch.matmul(image_features, text_features.T)
                 similarity_t2i = torch.matmul(text_features, image_features.T)
+                    
+
+                def compute_recall_at_k(similarity, k):
+                    top_k = similarity.topk(k, dim=1).indices
+                    correct = torch.arange(len(similarity)).unsqueeze(1).to(similarity.device)
+                    recall = (top_k == correct).any(dim=1).float().mean().item()
+                    return recall
+
+                # Compute R@1, R@5, and R@10
+                print("Computing R@1, R@5, and R@10... for image to text retrieval")
+                r_at_1 = compute_recall_at_k(similarity_i2t, 1)
+                r_at_5 = compute_recall_at_k(similarity_i2t, 5)
+                r_at_10 = compute_recall_at_k(similarity_i2t, 10)
                 
+                R1s_itr.append(r_at_1)
+                R5s_itr.append(r_at_5)
+                R10s_itr.append(r_at_10)
 
-            def compute_recall_at_k(similarity, k):
-                top_k = similarity.topk(k, dim=1).indices
-                correct = torch.arange(len(similarity)).unsqueeze(1).to(similarity.device)
-                recall = (top_k == correct).any(dim=1).float().mean().item()
-                return recall
+                print(f"R@1: {r_at_1:.4f}, R@5: {r_at_5:.4f}, R@10: {r_at_10:.4f} for image-to-text retrieval")
 
-            # Compute R@1, R@5, and R@10
-            print("Computing R@1, R@5, and R@10... for image to text retrieval")
-            r_at_1 = compute_recall_at_k(similarity_i2t, 1)
-            r_at_5 = compute_recall_at_k(similarity_i2t, 5)
-            r_at_10 = compute_recall_at_k(similarity_i2t, 10)
+                print("Computing R@1, R@5, and R@10... for text to image retrieval")
+                r_at_1 = compute_recall_at_k(similarity_t2i, 1)
+                r_at_5 = compute_recall_at_k(similarity_t2i, 5)
+                r_at_10 = compute_recall_at_k(similarity_t2i, 10)
+
+                R1s_tir.append(r_at_1)
+                R5s_tir.append(r_at_5)
+                R10s_tir.append(r_at_10)
+
+                print(f"R@1: {r_at_1:.4f}, R@5: {r_at_5:.4f}, R@10: {r_at_10:.4f} for text-to-image retrieval")
             
-            print(f"R@1: {r_at_1:.4f}, R@5: {r_at_5:.4f}, R@10: {r_at_10:.4f} for image-to-text retrieval")
-
-            print("Computing R@1, R@5, and R@10... for text to image retrieval")
-            r_at_1 = compute_recall_at_k(similarity_t2i, 1)
-            r_at_5 = compute_recall_at_k(similarity_t2i, 5)
-            r_at_10 = compute_recall_at_k(similarity_t2i, 10)
-
-            print(f"R@1: {r_at_1:.4f}, R@5: {r_at_5:.4f}, R@10: {r_at_10:.4f} for text-to-image retrieval")
-
         # Code for measuring CIDEr score and attack success rate at each perturbation factor        
         if args.pert_factor_graph:
             pert_factor_levels = [0.1 * x for x in range(1,10)]
@@ -1539,13 +1561,21 @@ def evaluate_coco_cf(
     )
 
     # Initialising the dataloader
+    """
+    coco_cf_dataset_subset = torch.utils.data.Subset(coco_cf_dataset, indices=list(range(args.num_samples,args.num_samples + args.num_samples)))
+    coco_cf_dataloader = torch.utils.data.DataLoader(coco_cf_dataset_subset, 
+                                                     batch_size=args.batch_size, 
+                                                     shuffle=False, 
+                                                     collate_fn=custom_collate_fn
+    )
+    """
     coco_cf_dataloader = prepare_eval_samples(
         test_dataset=coco_cf_dataset,
         num_samples=args.num_samples if args.num_samples > 0 else len(coco_cf_dataset),
         batch_size=args.batch_size,
         seed=seed,
     )
-
+    
     # Preparing In-context samples
     in_context_samples = get_query_set(train_dataset, args.query_set_size, seed)
 
