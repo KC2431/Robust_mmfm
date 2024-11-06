@@ -1,3 +1,5 @@
+# Taken from https://github.com/openai/CLIP/blob/main/data/prompts.md
+
 CIFAR10_CLASSES_TEMPLATES = {
     'classes' : [
         'airplane',
@@ -10,7 +12,7 @@ CIFAR10_CLASSES_TEMPLATES = {
         'horse',
         'ship',
         'truck',
-    ]
+    ],
 
     'templates' : [
         'a photo of a {}.',
@@ -136,7 +138,7 @@ CIFAR100_CLASSES_TEMPLATES = {
         'wolf',
         'woman',
         'worm',
-    ]
+    ],
 
     'templates' : [
         'a photo of a {}.',
@@ -178,8 +180,8 @@ ImageNet_CLASSES_TEMPLATES = {
     "solar thermal collector", "sombrero", "soup bowl", "keyboard space bar", "space heater", "space shuttle", "spatula", "motorboat", "spider web", "spindle", "sports car", 
     "spotlight", "stage", "steam locomotive", "through arch bridge", "steel drum", "stethoscope", "scarf", "stone wall", "stopwatch", "stove", "strainer", "tram", "stretcher", "couch", "stupa", "submarine", "suit", "sundial", "sunglasses", "sunglasses", "sunscreen", "suspension bridge", "mop", "sweatshirt", "swim trunks / shorts", "swing",
      "electrical switch", "syringe", "table lamp", "tank", "tape player", "teapot", "teddy bear", "television", "tennis ball", "thatched roof", "front curtain", "thimble", "threshing machine", "throne", "tile roof", "toaster", "tobacco shop", "toilet seat", "torch", "totem pole", "tow truck", "toy store", "tractor", "semi-trailer truck", "tray", "trench coat", "tricycle", "trimaran", "tripod", "triumphal arch", "trolleybus", "trombone", "hot tub", "turnstile", "typewriter keyboard", "umbrella", "unicycle", "upright piano", "vacuum cleaner", "vase", "vaulted or arched ceiling", "velvet fabric", "vending machine", "vestment", "viaduct", "violin", "volleyball", "waffle iron", "wall clock", "wallet", "wardrobe", "military aircraft", "sink", "washing machine", "water bottle", "water jug", "water tower", "whiskey jug", "whistle", "hair wig", "window screen", "window shade", "Windsor tie", "wine bottle", "airplane wing", "wok", "wooden spoon", "wool", "split-rail fence", "shipwreck", "sailboat", "yurt", "website", "comic book", "crossword", "traffic or street sign", "traffic light", "dust jacket", "menu", "plate", "guacamole", "consomme", "hot pot", "trifle", "ice cream", "popsicle", "baguette", "bagel", "pretzel", "cheeseburger", "hot dog", "mashed potatoes", "cabbage", "broccoli", "cauliflower", "zucchini", "spaghetti squash", "acorn squash", "butternut squash", "cucumber", "artichoke", "bell pepper", "cardoon", "mushroom", "Granny Smith apple", "strawberry", "orange", "lemon", "fig", "pineapple", "banana", "jackfruit", "cherimoya (custard apple)", "pomegranate", "hay", "carbonara", "chocolate syrup", "dough", "meatloaf", "pizza", "pot pie", "burrito", "red wine", "espresso", "tea cup", "eggnog", "mountain", "bubble", "cliff", "coral reef", "geyser", "lakeshore", "promontory", "sandbar", "beach", "valley", "volcano", "baseball player", "bridegroom", "scuba diver", "rapeseed", "daisy", "yellow lady's slipper", "corn", "acorn", "rose hip", "horse chestnut seed", "coral fungus", "agaric", "gyromitra", "stinkhorn mushroom", "earth star fungus", "hen of the woods mushroom", "bolete", "corn cob", "toilet paper"]
-
-    'templates' = [
+    ,
+    'templates' : [
         'a bad photo of a {}.',
         'a photo of many {}.',
         'a sculpture of a {}.',
@@ -367,7 +369,7 @@ Caltech101_CLASSES_TEMPLATES = {
         'windsor chair',
         'wrench',
         'yin and yang symbol',
-    ]
+    ],
 
     'templates' : [
         'a photo of a {}.',
@@ -666,7 +668,7 @@ Caltech256_CLASSES_TEMPLATES = {
         'tennis shoes',
         'toad',
         'clutter'
-    ]
+    ],
 
     'templates' : [
         'a photo of a {}.',
@@ -809,9 +811,11 @@ Food101_CLASSES_TEMPLATES = {
         'tiramisu',
         'tuna tartare',
         'waffles',
-    ]
+    ],
 
     'templates' : [
         'a photo of {}, a type of food.',
     ]
 }
+
+data_seeds = [107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121]
