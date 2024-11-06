@@ -39,10 +39,9 @@ def main():
                 num_ms_coco_samples = 17410
                 num_attacks_samples = 17410 # These many pairs of samples with their counterfactuals or adv attack samples. Effectively 34820 in total.
 
-            if data_name != 'all':
-                np.random.seed(data_seed)
-                ms_coco_rand_indices = np.random.choice(len(ms_coco_array), num_ms_coco_samples, replace=False)
-                attack_rand_indices = np.random.choice(len(attack_array), num_attacks_samples, replace=False)
+            np.random.seed(data_seed)
+            ms_coco_rand_indices = np.random.choice(len(ms_coco_array), num_ms_coco_samples, replace=False)
+            attack_rand_indices = np.random.choice(len(attack_array), num_attacks_samples, replace=False)
 
             ms_coco_samples = [ms_coco_array[int(i)] for i in ms_coco_rand_indices]
             attack_samples = [attack_array[int(i)] for i in attack_rand_indices]
