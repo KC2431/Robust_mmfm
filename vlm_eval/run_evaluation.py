@@ -88,7 +88,7 @@ parser.add_argument("--itr_dataset",
                     type=str,
                     choices=["MS_COCO", "base", "medium", "all","clean"],
                     help="If set to MS_COCO, it calculates R@1, R@5, R@10 for image to text retrieval with CLIP fine-tuned on MS_COCO")
-parser.add_argument("--itr_method", default="APGD_4", choices=["MS_COCO_APGD_4", "MS_COCO_APGD_1", "MS_COCO_COCO_CF", "MS_COCO", "clean"])
+parser.add_argument("--itr_method", default="APGD_4", choices=["APGD_4", "APGD_1", "COCO_CF", "NONE"])
 parser.add_argument(
     "--trial_seeds",
     nargs="+",
@@ -1289,21 +1289,23 @@ def evaluate_captioning(
             clip_trained_models_path = '/home/htc/kchitranshi/SCRATCH/trained_clip_models/'           
             clip_trained_model_method_path = clip_trained_models_path + args.itr_method
             
+            model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+            
+            adversarial_images = torch.concat(batchs_images_array, dim=0)
+            adversarial_images = adversarial_images.view(adversarial_images.shape[0], 3, 224, 224)
+            adversarial_images = [Image.fromarray(adv_img.mul(255).byte().permute(1, 2, 0).cpu().numpy()) for adv_img in adversarial_images]
+
             for data_seed in data_seeds:
                 if args.itr_method != 'clean':
                     if args.itr_dataset != 'MS_COCO':
-                        model = CLIPModel.from_pretrained(clip_trained_model_method_path + f'/clip_model_dataset_{args.itr_dataset}_method_{args.itr_method}_num_epochs_10_data_seed_{data_seed}.pt')
+                        model.load_state_dict(torch.load(clip_trained_model_method_path + f'/clip_model_dataset_{args.itr_dataset}_method_{args.itr_method}_num_epochs_10_data_seed_{data_seed}.pt'))
                     else:
-                        model = CLIPModel.from_pretrained(clip_trained_model_method_path + f'/clip_model_method_none_num_epochs_10.pt')
+                        model.load_state_dict(torch.load(clip_trained_model_method_path + f'/clip_model_method_none_num_epochs_10.pt'))
                 else:
                     model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
                 
                 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
                                 
-                adversarial_images = torch.concat(batchs_images_array, dim=0)
-                adversarial_images = adversarial_images.view(adversarial_images.shape[0], 3, 224, 224)
-                adversarial_images = [Image.fromarray(adv_img.mul(255).byte().permute(1, 2, 0).cpu().numpy()) for adv_img in adversarial_images]
-
                 print("Performing image text retrieval for CLIP")
                 model.eval()
 
@@ -1347,6 +1349,12 @@ def evaluate_captioning(
                 R10s_tir.append(r_at_10)
 
                 print(f"R@1: {r_at_1:.4f}, R@5: {r_at_5:.4f}, R@10: {r_at_10:.4f} for text-to-image retrieval")
+            
+            print(f"Mean R@1: {np.mean(np.array(R1s_itr)):.4f}, Mean R@5: {np.mean(np.array(R5s_itr)):.4f}, Mean R@10: {np.mean(np.array(R10s_itr)):.4f} for image-to-text retrieval")
+            print(f"Mean R@1: {np.mean(np.array(R1s_tir)):.4f}, Mean R@5: {np.mean(np.array(R5s_tir)):.4f}, Mean R@10: {np.mean(np.array(R10s_tir)):.4f} for text-to-image retrieval")
+
+            print(f"Std R@1: {np.std(np.array(R1s_itr)):.4f}, Std R@5: {np.std(np.array(R5s_itr)):.4f}, Std R@10: {np.std(np.array(R10s_itr)):.4f} for image-to-text retrieval")
+            print(f"Std R@1: {np.std(np.array(R1s_tir)):.4f}, Std R@5: {np.std(np.array(R5s_tir)):.4f}, Std R@10: {np.std(np.array(R10s_tir)):.4f} for text-to-image retrieval")
 
         # Code for measuring CIDEr score and attack success rate at each perturbation factor        
         if args.pert_factor_graph:
