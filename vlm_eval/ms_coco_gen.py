@@ -21,6 +21,7 @@ dl_coco_cf = DataLoader(coco_cf, batch_size=100,collate_fn=custom_collate_fn)
 coco_cf_captions = []
 
 for batch in dl_coco_cf:
-    # Extend the list with both captions at once without list comprehension
-    coco_cf_captions.extend(batch['caption_0'])
-    coco_cf_captions.extend(batch['caption_1'])
+    coco_cf_captions.extend([caption.replace('.','').replace(",","").replace("-","").replace("'s",'').lower().strip() for caption in batch['caption_0']])
+
+ms_coco_gen_indices = []
+coco_cf_captions_set = set(coco_cf_captions)
