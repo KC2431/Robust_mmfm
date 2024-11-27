@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from datasets_classes_templates import data_seeds
+import numpy as np
 
 def zeroshot_classifier(classnames, templates, processor, model):
     with torch.no_grad():
@@ -36,9 +37,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", type=str, default=None, choices=['MS_COCO','medium','base','all'], help='Data on which clip was fine-tuned')
     parser.add_argument("--dataset", type=str, default="CIFAR10", choices=["CIFAR10", "CIFAR100", "ImageNet", "Caltech101", "Caltech256", "Food101"])
-    parser.add_argument("--method",type=str, default="COCO_CF", choices=['COCO_CF','APGD_1','APGD_4','NONE'])
+    parser.add_argument("--method",type=str, default="COCO_CF", choices=['COCO_CF','APGD_1','APGD_4','APGD_8','NONE'])
     args = parser.parse_args()
     
+    if args.data == 'MS_COCO':
+        assert args.method == 'NONE' and args.data == 'MS_COCO', 'Use NONE for method for MS_COCO data'
+
     if args.dataset == "CIFAR10":
         from datasets_classes_templates import CIFAR10_CLASSES_TEMPLATES as classes_templates
         from torchvision.datasets import CIFAR10
@@ -55,29 +59,43 @@ def main():
         from datasets_classes_templates import Caltech101_CLASSES_TEMPLATES as classes_templates
         from torchvision.datasets import Caltech101
         data = Caltech101(root='/home/htc/kchitranshi/SCRATCH/', download=False)
+        train_size = int(0.8 * len(data))  # 80% for training
+        val_size = len(data) - train_size 
+        _, data = torch.utils.data.random_split(data, [train_size, val_size])
     elif args.dataset == "Caltech256":
         from datasets_classes_templates import Caltech256_CLASSES_TEMPLATES as classes_templates
         from torchvision.datasets import Caltech256
         data = Caltech256(root='/home/htc/kchitranshi/SCRATCH/', download=False)
+        train_size = int(0.8 * len(data))  # 80% for training
+        val_size = len(data) - train_size 
+        _, data = torch.utils.data.random_split(data, [train_size, val_size])
     elif args.dataset == "Food101":
         from datasets_classes_templates import Food101_CLASSES_TEMPLATES as classes_templates
         from torchvision.datasets import Food101
         data = Food101(root='/home/htc/kchitranshi/SCRATCH/', download=False, split='test')
+    else:
+        raise NotImplementedError
 
     print(f'Conducting zero-shot image classification on {args.dataset}')
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     model_base_path = '/home/htc/kchitranshi/SCRATCH/trained_clip_models'
-
     processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-    for data_seed in data_seeds:   
+    top1_list = []
+    for data_seed in data_seeds:
         print(f'Conducting zero-shot image classification on {args.data} with seed {data_seed} for the method {args.method}')
         model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
-        model.load_state_dict(torch.load(f'{model_base_path}/{args.method}/clip_model_dataset_{args.data}_method_{args.method}_num_epochs_10_data_seed_{data_seed}.pt'))
+        if args.method != 'NONE':
+            if args.data not in ['all']:
+                model.load_state_dict(torch.load(f'{model_base_path}/{args.method}/clip_model_dataset_{args.data}_method_{args.method}_num_epochs_20_data_seed_{data_seed}.pt'))
+            else:
+                model.load_state_dict(torch.load(f'{model_base_path}/{args.method}/clip_model_dataset_{args.data}_method_{args.method}_num_epochs_20.pt'))
+        elif args.method == 'NONE' and args.data == 'MS_COCO':
+            model.load_state_dict(torch.load(f'{model_base_path}/{args.method}/clip_model_dataset_{args.data}_method_{args.method}_num_epochs_20.pt'))
         model.eval()
 
-        data_loader = DataLoader(data, batch_size=128, collate_fn=classification_collate_fn)
+        data_loader = DataLoader(data, batch_size=128, collate_fn=classification_collate_fn, shuffle=False)
 
         zeroshot_weights = zeroshot_classifier(classes_templates['classes'], 
                                             classes_templates['templates'], 
@@ -107,10 +125,17 @@ def main():
         top1 = (top1 / n) * 100
         top5 = (top5 / n) * 100 
 
+        top1_list.append(top1)
+
         print(f"Top-1 accuracy: {top1:.2f}")
         print(f"Top-5 accuracy: {top5:.2f}")
 
-
+        if args.method == 'NONE' or args.data in ['MS_COCO','all']:
+            break
+    print(top1_list)
+    top1 = np.asarray(top1_list)
+    print(f'Mean of the top 1 accuracy is {np.mean(top1)}')
+    print(f'Standard deviation of the top 1 accuracy is {np.std(top1)}')
 
 if __name__ == "__main__":
     main()

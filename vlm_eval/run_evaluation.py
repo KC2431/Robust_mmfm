@@ -88,7 +88,7 @@ parser.add_argument("--itr_dataset",
                     type=str,
                     choices=["MS_COCO", "base", "medium", "all","clean"],
                     help="If set to MS_COCO, it calculates R@1, R@5, R@10 for image to text retrieval with CLIP fine-tuned on MS_COCO")
-parser.add_argument("--itr_method", default="APGD_4", choices=["APGD_4", "APGD_1", "COCO_CF", "NONE"])
+parser.add_argument("--itr_method", default="APGD_4", choices=["APGD_4", "APGD_1", "COCO_CF", "NONE",'APGD_8'])
 parser.add_argument(
     "--trial_seeds",
     nargs="+",
@@ -1283,6 +1283,9 @@ def evaluate_captioning(
             from PIL import Image
             from transformers import CLIPProcessor, CLIPModel
 
+            if args.itr_dataset == 'MS_COCO':
+                assert args.itr_method == 'NONE' and args.itr_dataset == 'MS_COCO', 'Use NONE for itr_method for MS_COCO itr_dataset'
+
             R1s_itr, R5s_itr, R10s_itr = [], [], [] # for image to text retrieval
             R1s_tir, R5s_tir, R10s_tir = [], [], [] # for text to image retrieval
 
@@ -1296,13 +1299,13 @@ def evaluate_captioning(
             adversarial_images = [Image.fromarray(adv_img.mul(255).byte().permute(1, 2, 0).cpu().numpy()) for adv_img in adversarial_images]
 
             for data_seed in data_seeds:
-                if args.itr_method != 'clean':
-                    if args.itr_dataset != 'MS_COCO':
-                        model.load_state_dict(torch.load(clip_trained_model_method_path + f'/clip_model_dataset_{args.itr_dataset}_method_{args.itr_method}_num_epochs_10_data_seed_{data_seed}.pt'))
+                if args.itr_method != 'NONE':
+                    if args.itr_dataset not in ['all']:
+                        model.load_state_dict(torch.load(f'{clip_trained_model_method_path}/clip_model_dataset_{args.itr_dataset}_method_{args.itr_method}_num_epochs_20_data_seed_{data_seed}.pt'))
                     else:
-                        model.load_state_dict(torch.load(clip_trained_model_method_path + f'/clip_model_method_none_num_epochs_10.pt'))
-                else:
-                    model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+                        model.load_state_dict(torch.load(f'{clip_trained_model_method_path}/clip_model_dataset_{args.itr_dataset}_method_{args.itr_method}_num_epochs_20.pt'))
+                elif args.itr_method == 'NONE' and args.itr_dataset == 'MS_COCO':
+                    model.load_state_dict(torch.load(f'{clip_trained_model_method_path}/clip_model_dataset_{args.itr_dataset}_method_{args.itr_method}_num_epochs_20.pt'))
                 
                 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
                                 
@@ -1347,7 +1350,12 @@ def evaluate_captioning(
                 R1s_tir.append(r_at_1)
                 R5s_tir.append(r_at_5)
                 R10s_tir.append(r_at_10)
-
+                print(R1s_itr)
+                print(R5s_itr)
+                print(R10s_itr)
+                print(R1s_tir)
+                print(R5s_tir)
+                print(R10s_tir)
                 print(f"R@1: {r_at_1:.4f}, R@5: {r_at_5:.4f}, R@10: {r_at_10:.4f} for text-to-image retrieval")
             
             print(f"Mean R@1: {np.mean(np.array(R1s_itr)):.4f}, Mean R@5: {np.mean(np.array(R5s_itr)):.4f}, Mean R@10: {np.mean(np.array(R10s_itr)):.4f} for image-to-text retrieval")
@@ -1570,8 +1578,8 @@ def evaluate_coco_cf(
     )
 
     # Initialising the dataloader
-    """
-    coco_cf_dataset_subset = torch.utils.data.Subset(coco_cf_dataset, indices=list(range(args.num_samples,args.num_samples + args.num_samples)))
+    
+    coco_cf_dataset_subset = torch.utils.data.Subset(coco_cf_dataset, indices=list(range(17000,17410)))
     coco_cf_dataloader = torch.utils.data.DataLoader(coco_cf_dataset_subset, 
                                                      batch_size=args.batch_size, 
                                                      shuffle=False, 
@@ -1584,7 +1592,7 @@ def evaluate_coco_cf(
         batch_size=args.batch_size,
         seed=seed,
     )
-    
+    """
     # Preparing In-context samples
     in_context_samples = get_query_set(train_dataset, args.query_set_size, seed)
 
