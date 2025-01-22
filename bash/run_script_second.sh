@@ -37,20 +37,22 @@ echo 'Print GPUs'
 echo 'Running script'
 cd Robust_mmfm
 python -m vlm_eval.run_evaluation \
---eval_coco_cf \
+--eval_coco \
 --verbose \
---attack apgd --eps 1 --steps 100 --mask_out none --mu 1.5 --search_steps 2 --lam 0.005 --k 8000 --targeted --target_str "Please reset your password" \
+--dont_save_adv \
+--attack apgd --eps 4 --steps 100 --mask_out none --mu 1.5 --search_steps 2 --lam 0.005 --k 8000 --targeted --target_str "A person suffers severe side effects after vaccination" \
 --pert_factor_graph 0 \
---itr 1 \
---itr_clip 1 \
---itr_clip_rn 1 \
+--itr 0 \
+--itr_clip 0 \
+--itr_dataset base \
+--itr_method APGD_1 \
 --vision_encoder_pretrained openai \
---num_samples 6500 \
+--num_samples 800 \
 --trial_seeds 42 \
 --num_trials 1 \
 --shots 0 \
 --batch_size 1 \
---results_file  /home/htc/kchitranshi/RobustVLM/res3B \
+--results_file  /home/htc/kchitranshi/RobustVLM \
 --model open_flamingo \
 --out_base_path /home/htc/kchitranshi/RobustVLM/ \
 --vision_encoder_path ViT-L-14 \
@@ -62,7 +64,7 @@ python -m vlm_eval.run_evaluation \
 --coco_train_image_dir_path /home/htc/kchitranshi/SCRATCH/COCO/train2014 \
 --coco_val_image_dir_path /home/htc/kchitranshi/SCRATCH/COCO/val2014 \
 --coco_karpathy_json_path /home/htc/kchitranshi/SCRATCH/COCO/karpathy_coco.json \
---coco_annotations_json_path /home/htc/kchitranshi/RobustVLM/annotations/captions_val2014.json \
+--coco_annotations_json_path /home/htc/kchitranshi/SCRATCH/RobustVLM/annotations/captions_val2014.json \
 --coco_cf_image_dir_path /home/htc/kchitranshi/SCRATCH/COCO_CF \
 --flickr_image_dir_path /home/htc/kchitranshi/SCRATCH/flickr/Images \
 --flickr_karpathy_json_path /home/htc/kchitranshi/SCRATCH/flickr/karpathy_flickr30k.json \
@@ -80,9 +82,9 @@ python -m vlm_eval.run_evaluation \
 --vqav2_test_questions_json_path /home/htc/kchitranshi/SCRATCH/vqav2/v2_OpenEnded_mscoco_val2014_questions.json \
 --vqav2_test_annotations_json_path /home/htc/kchitranshi/SCRATCH/vqav2/v2_mscoco_val2014_annotations.json \
 --textvqa_image_dir_path /mnt/datasets/textvqa/train_images \
---textvqa_train_questions_json_path /home/htc/kchitranshi/RobustVLM/textvqa/train_questions_vqa_format.json \
---textvqa_train_annotations_json_path /home/htc/kchitranshi/RobustVLM/textvqa/train_annotations_vqa_format.json \
---textvqa_test_questions_json_path /home/htc/kchitranshi/RobustVLM/textvqa/val_questions_vqa_format.json \
+--textvqa_train_questions_json_path /home/htc/kchitranshi/SCRATCH/RobustVLM/textvqa/train_questions_vqa_format.json \
+--textvqa_train_annotations_json_path /home/htc/kchitranshi/SCRATCH/RobustVLM/textvqa/train_annotations_vqa_format.json \
+--textvqa_test_questions_json_path /home/htc/kchitranshi/SCRATCH/RobustVLM/textvqa/val_questions_vqa_format.json \
 --textvqa_test_annotations_json_path /home/htc/kchitranshi/RobustVLM/textvqa/val_annotations_vqa_format.json \
 --ok_vqa_train_image_dir_path /home/htc/kchitranshi/SCRATCH/COCO/train2014 \
 --ok_vqa_train_questions_json_path /home/htc/kchitranshi/SCRATCH/ok_vqa/OpenEnded_mscoco_train2014_questions.json \

@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=100G
 #SBATCH --partition=gpu  # Specify the desired partition, e.g. gpu or big
-#SBATCH --exclude=htc-gpu[020-023,037,038] # Only A40 GPU
+#SBATCH --exclude=htc-gpu[037-038] # Only A40 GPU
 #SBATCH --time=0-20:00:00 # Specify a Time limit in the format days-hrs:min:sec. Use sinfo to see node time limits
 #SBATCH --ntasks=1
 #
@@ -36,4 +36,4 @@ echo 'Print GPUs'
 
 echo 'Running script'
 cd Robust_mmfm
-python vlm_eval/clip_train.py --num_epochs 20 --data_seeds 115 116 117 118 --data_name all --method APGD_8 --batch_size 128 --learning_rate 5e-7 --save_model --save_model_path /home/htc/kchitranshi/SCRATCH/trained_clip_models/APGD_8/
+python vlm_eval/clip_classification.py --data medium --method COCO_CF --dataset ImageNet
