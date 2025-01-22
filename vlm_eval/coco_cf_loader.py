@@ -7,11 +7,11 @@ from PIL import Image
 
 class MS_COCO_dataset(Dataset):
 
-    def __init__(self, base_dir):
+    def __init__(self, base_dir, annotation_file=None):
 
         self.data= []
-        self.img_dir = base_dir + '/val2017'
-        self.annotation_file = base_dir + "/ms_coco_captions.json"
+        self.img_dir = base_dir + '/images'
+        self.annotation_file = base_dir + annotation_file
 
         with open(self.annotation_file, 'r') as file:
             for line in file:

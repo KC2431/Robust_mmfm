@@ -16,7 +16,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from vlm_eval.coco_cf_loader import COCO_CF_dataset
-
+from datasets import load_metric
 
 from open_flamingo.eval.coco_metric import (
     compute_cider,
@@ -1032,8 +1032,9 @@ def evaluate_captioning(
         if args.itr:
             assert num_shots == 0 and not targeted
             itr_text_array = []
-            
-
+        bleu_metric = load_metric("bleu")    
+        reference_bleu_array = []
+        prediction_bleu_array = []
         for batch_n, batch in enumerate(tqdm(test_dataloader, desc=f"Running inference {dataset_name.upper()}")):
             if not left_to_attack[batch["image_id"][0]]:  # hardcoded to batch size 1
                 continue
@@ -1063,6 +1064,7 @@ def evaluate_captioning(
                     context_text = context_text.replace("<image>", "")
 
                 adv_caption = batch["caption"][i] if not targeted else target_str
+                reference_bleu_array.append([adv_caption.lower().split()])
                 if effective_num_shots > 0:
                     batch_text.append(context_text + eval_model.get_caption_prompt())
                     batch_text_adv.append(context_text + eval_model.get_caption_prompt(adv_caption))
@@ -1259,11 +1261,11 @@ def evaluate_captioning(
                 batch_images=batch_images,
                 batch_text=batch_text,
                 min_generation_length=min_generation_length,
-                max_generation_length=max_generation_length if not targeted else 4,
+                max_generation_length=max_generation_length if not targeted else 8,
                 num_beams=num_beams,
                 length_penalty=length_penalty,
             )
-
+            prediction_bleu_array.append(outputs[0].lower().split())
             new_predictions = [
                 postprocess_captioning_generation(out).replace('"', "") for out in outputs
             ]
@@ -1278,7 +1280,8 @@ def evaluate_captioning(
                 predictions[sample_id] = {"caption": new_predictions[i]}
 
         print(f"mean L_0: {L_0_sum/args.num_samples}")
-        
+        bleu_score = bleu_metric.compute(predictions=prediction_bleu_array, references=reference_bleu_array)
+        print(f"The BLEU4 score is {bleu_score['bleu'] * 100}")
         if args.itr:
             from PIL import Image
             from transformers import CLIPProcessor, CLIPModel

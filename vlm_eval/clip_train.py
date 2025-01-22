@@ -51,8 +51,8 @@ class ModelTrainer:
         lr_scheduler = CosineLRScheduler(
             self.optimizer,
             t_initial=self.num_epochs * len(self.train_data_loader),
-            lr_min=5e-7,
-            warmup_lr_init=1e-6,
+            lr_min=2e-7,
+            warmup_lr_init=1e-7,
             warmup_prefix=True,
             warmup_t=3,
             cycle_limit=1,
@@ -84,7 +84,7 @@ class ModelTrainer:
             print(f"Epoch {epoch+1}/{self.num_epochs} Loss: {running_loss/len(self.train_data_loader.dataset):.4f}")
             progress_bar.set_postfix(
                 epoch="{}/{}".format(epoch+1,self.num_epochs),
-                loss=loss.item(),
+                loss=running_loss/len(self.train_data_loader.dataset),
                 lr=self.optimizer.param_groups[0]["lr"]
             )
 
@@ -126,12 +126,11 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--num_epochs', type=int, default=20)
-    parser.add_argument('--data_seed', type=int, default=42)
     parser.add_argument('--data_name', type=str, default="MS_COCO", choices=["MS_COCO","base","medium","all"])
     parser.add_argument('--learning_rate', type=float, default=1e-5)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--save_model', action='store_true', default=False)
-    parser.add_argument('--method', type=str, choices=['COCO_CF','APGD_1','APGD_4','NONE'])
+    parser.add_argument('--method', type=str, choices=['COCO_CF','APGD_1','APGD_4','APGD_8','NONE'])
     parser.add_argument('--save_model_path', type=str, default="/home/htc/kchitranshi/SCRATCH/")
     parser.add_argument(
         "--data_seeds",
@@ -165,7 +164,7 @@ def main():
         else:
             print(f"Data Name: {args.data_name} | Method: {args.method}")
             dataset = MS_COCO_dataset(base_dir=f'/home/htc/kchitranshi/SCRATCH/Datasets/MS_COCO',
-                                      annotation_file=f'/json_files/ms_coco_captions_data_{data_seed}.json')
+                                      annotation_file=f'/ms_coco_captions.json')
 
         train_size = int(0.8 * len(dataset))  # 80% for training
         val_size = len(dataset) - train_size   # 20% for validation
